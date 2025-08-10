@@ -212,9 +212,10 @@ tensor_t Tensor::permute(const std::vector<size_t> &order) const {
 }
 
 tensor_t Tensor::view(const std::vector<size_t> &shape) const {
-    size_t new_size = std::accumulate(shape.begin(), shape.end(), 1, [](const size_t &a, const size_t &b) {
+    auto tmp = std::accumulate(shape.begin(), shape.end(), 1, [](const size_t &a, const size_t &b) {
         return a * b;
     });
+    auto new_size = static_cast<size_t>(tmp);
     if (new_size != this->numel()) {
         throw std::runtime_error("New shape numel does not match.");
     }
@@ -266,6 +267,7 @@ void Tensor::load(const void *src_) {
             LLAISYS_MEMCPY_H2D);
         core::context().runtime().api()->device_synchronize();
     }
+    // trigger the github workflow
 }
 
 tensor_t Tensor::contiguous() const {
