@@ -17,15 +17,18 @@ private:
     TensorMeta _meta;
     core::storage_t _storage;
     size_t _offset;
-    Tensor(TensorMeta meta, core::storage_t storage, size_t offset = 0);
 
 public:
+    // change here to fit the Meta Transform
+    Tensor(TensorMeta meta, core::storage_t storage, size_t offset = 0);
+
     static tensor_t create(
         const std::vector<size_t> &shape,
         llaisysDataType_t dtype,
         llaisysDeviceType_t device_type = LLAISYS_DEVICE_CPU,
         int device = 0);
     ~Tensor() = default;
+
     // Info
     std::byte *data();
     const std::byte *data() const;
