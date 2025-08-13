@@ -15,3 +15,7 @@ embedding
 ```bash
 source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/ops/embedding.py
 ```
+linear
+```bash
+source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/ops/linear.py
+```
