@@ -19,3 +19,7 @@ linear
 ```bash
 source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/ops/linear.py
 ```
+rms_norm
+```bash
+source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/ops/rms_norm.py
+```
