@@ -31,3 +31,7 @@ self_atten
 ```bash
 source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/ops/self_attention.py
 ```
+swiglu
+```bash
+source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/ops/swiglu.py
+```
