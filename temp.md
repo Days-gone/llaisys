@@ -27,3 +27,7 @@ rope
 ```bash
 source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/ops/rope.py
 ```
+self_atten
+```bash
+source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/ops/self_attention.py
+```
