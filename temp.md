@@ -23,3 +23,7 @@ rms_norm
 ```bash
 source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/ops/rms_norm.py
 ```
+rope
+```bash
+source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/ops/rope.py
+```
