@@ -5,6 +5,7 @@
 namespace llaisys::ops {
 void argmax(tensor_t max_idx, tensor_t max_val, tensor_t vals) {
     CHECK_SAME_DEVICE(max_idx, max_val, vals);
+    CHECK_SAME_DTYPE(max_val->dtype(), vals->dtype());
     if (max_idx->deviceType() == LLAISYS_DEVICE_CPU) {
         cpu::argmax(vals->data(), max_val->data(), max_idx->data(), vals->dtype(), vals->numel());
     } else {

@@ -10,19 +10,16 @@ void argmax_(T *vals, T *max_val, Idx *max_idx, size_t size) {
         if constexpr (std::is_same_v<T, llaisys::bf16_t>) {
             if (llaisys::utils::_bf16_to_f32(vals[i]) > llaisys::utils::_bf16_to_f32(*max_val)) {
                 *max_val = vals[i];
-                std::cout << "New max found: " << llaisys::utils::_bf16_to_f32(*max_val) << " at index " << i << "\n";
                 *max_idx = i;
             }
         } else if constexpr (std::is_same_v<T, llaisys::fp16_t>) {
             if (llaisys::utils::_f16_to_f32(vals[i]) > llaisys::utils::_f16_to_f32(*max_val)) {
                 *max_val = vals[i];
-                std::cout << "New max found: " << llaisys::utils::_f16_to_f32(*max_val) << " at index " << i << "\n";
                 *max_idx = i;
             }
         } else {
             if (vals[i] > *max_val) {
                 *max_val = vals[i];
-                std::cout << "New max found: " << *max_val << " at index " << i << "\n";
                 *max_idx = i;
             }
         }
