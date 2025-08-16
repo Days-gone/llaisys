@@ -5,7 +5,7 @@ namespace llaisys::ops {
 void embedding(tensor_t out, tensor_t index, tensor_t weight) {
     CHECK_SAME_DEVICE(out, index, weight);
     if (weight->deviceType() == LLAISYS_DEVICE_CPU) {
-        cpu::embedding(out->data(), index->data(), weight->data(), index->numel(), weight->shape(), weight->dtype());
+        cpu::embedding(out->data(), index->data(), weight->data(), index->numel(), weight->shape()[0], weight->shape()[1], weight->dtype());
     }
 }
 } // namespace llaisys::ops
