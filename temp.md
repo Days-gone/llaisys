@@ -37,5 +37,5 @@ source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ 
 ```
 # Transformer Test
 ```bash
-source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/test_infer.py --model ./data/DeepSeek-R1-Distill-Qwen-1.5B > log
+source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/test_infer.py --model ./data/DeepSeek-R1-Distill-Qwen-1.5B
 ```

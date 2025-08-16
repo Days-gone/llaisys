@@ -187,3 +187,25 @@ class Tensor:
         llaisys_tensor.load(torch_tensor.data_ptr())
 
         return llaisys_tensor
+
+    def item(self):
+        """获取标量tensor的值"""
+        if self.ndim() != 1 or self.shape()[0] != 1:
+            raise ValueError("item() can only be called on scalar tensors")
+
+        from ctypes import c_int64, c_int32, c_float, POINTER, cast
+
+        ptr = self.data_ptr()
+        dtype = self.dtype()
+
+        if dtype == DataType.I64:
+            int64_ptr = cast(ptr, POINTER(c_int64))
+            return int(int64_ptr.contents.value)
+        elif dtype == DataType.I32:
+            int32_ptr = cast(ptr, POINTER(c_int32))
+            return int(int32_ptr.contents.value)
+        elif dtype == DataType.F32:
+            float_ptr = cast(ptr, POINTER(c_float))
+            return float(float_ptr.contents.value)
+        else:
+            raise ValueError(f"Unsupported dtype for item(): {dtype}")

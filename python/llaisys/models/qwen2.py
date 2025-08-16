@@ -1,6 +1,6 @@
 from typing import Sequence
 from ..libllaisys import LIB_LLAISYS
-from ..libllaisys import DeviceType
+from ..libllaisys import DeviceType, DataType
 from ..tensor import Tensor
 
 from pathlib import Path
@@ -110,7 +110,11 @@ class Qwen2:
         hidden_dim = self.embed_tokens_weight.shape()[1]
 
         # 词嵌入
-        hidden_states = Tensor.zeros([seq_len, hidden_dim], device=self.device)
+        hidden_states = Tensor.zeros(
+            [seq_len, hidden_dim],
+            device=self.device,
+            dtype=DataType.BF16,
+        )
         self.ops.embedding(hidden_states, input_ids, self.embed_tokens_weight)
 
         # 逐层处理
@@ -119,13 +123,16 @@ class Qwen2:
 
         # 最终归一化
         normalized = Tensor.zeros_like(hidden_states)
-        hidden_states.slice(1, 1, 5).debug()
         self.ops.rms_norm(normalized, hidden_states, self.norm_weight, 1e-6)
 
         # 语言模型头
         vocab_size = self.lm_head_weight.shape()[0]
-        logits = Tensor.zeros([seq_len, vocab_size], device=self.device)
-        zero_bias = Tensor.zeros([vocab_size], device=self.device)
+        logits = Tensor.zeros(
+            [seq_len, vocab_size], device=self.device, dtype=normalized.dtype()
+        )
+        zero_bias = Tensor.zeros(
+            [vocab_size], device=self.device, dtype=normalized.dtype()
+        )
         self.ops.linear(logits, normalized, self.lm_head_weight, zero_bias)
 
         return logits
@@ -179,9 +186,15 @@ class Qwen2:
         num_kv_heads = kv_dim // head_dim
 
         # QKV投影 - 使用正确的维度
-        q = Tensor.zeros([seq_len, q_dim], device=self.device)
-        k = Tensor.zeros([seq_len, kv_dim], device=self.device)
-        v = Tensor.zeros([seq_len, kv_dim], device=self.device)
+        q = Tensor.zeros(
+            [seq_len, q_dim], device=self.device, dtype=hidden_states.dtype()
+        )
+        k = Tensor.zeros(
+            [seq_len, kv_dim], device=self.device, dtype=hidden_states.dtype()
+        )
+        v = Tensor.zeros(
+            [seq_len, kv_dim], device=self.device, dtype=hidden_states.dtype()
+        )
 
         self.ops.linear(q, hidden_states, layer.q_proj_weight, layer.q_proj_bias)
         self.ops.linear(k, hidden_states, layer.k_proj_weight, layer.k_proj_bias)
@@ -209,8 +222,12 @@ class Qwen2:
         attn_output = attn_output_reshaped.view([seq_len, q_dim])
 
         # 输出投影
-        output = Tensor.zeros([seq_len, hidden_dim], device=self.device)
-        zero_bias = Tensor.zeros([hidden_dim], device=self.device)
+        output = Tensor.zeros(
+            [seq_len, hidden_dim], device=self.device, dtype=hidden_states.dtype()
+        )
+        zero_bias = Tensor.zeros(
+            [hidden_dim], device=self.device, dtype=hidden_states.dtype()
+        )
         self.ops.linear(output, attn_output, layer.o_proj_weight, zero_bias)
 
         return output
@@ -221,19 +238,35 @@ class Qwen2:
         intermediate_size = layer.gate_proj_weight.shape()[0]
 
         # 门控和上投影
-        gate = Tensor.zeros([seq_len, intermediate_size], device=self.device)
-        up = Tensor.zeros([seq_len, intermediate_size], device=self.device)
+        gate = Tensor.zeros(
+            [seq_len, intermediate_size],
+            device=self.device,
+            dtype=hidden_states.dtype(),
+        )
+        up = Tensor.zeros(
+            [seq_len, intermediate_size],
+            device=self.device,
+            dtype=hidden_states.dtype(),
+        )
 
-        zero_bias = Tensor.zeros([intermediate_size], device=self.device)
+        zero_bias = Tensor.zeros(
+            [intermediate_size], device=self.device, dtype=hidden_states.dtype()
+        )
         self.ops.linear(gate, hidden_states, layer.gate_proj_weight, zero_bias)
         self.ops.linear(up, hidden_states, layer.up_proj_weight, zero_bias)
 
         # SwiGLU激活
-        swiglu_output = Tensor.zeros([seq_len, intermediate_size], device=self.device)
+        swiglu_output = Tensor.zeros(
+            [seq_len, intermediate_size],
+            device=self.device,
+            dtype=hidden_states.dtype(),
+        )
         self.ops.swiglu(swiglu_output, gate, up)
 
         # 下投影
-        output = Tensor.zeros([seq_len, hidden_dim], device=self.device)
+        output = Tensor.zeros(
+            [seq_len, hidden_dim], device=self.device, dtype=hidden_states.dtype()
+        )
         self.ops.linear(output, swiglu_output, layer.down_proj_weight, zero_bias)
 
         return output
@@ -267,18 +300,15 @@ class Qwen2:
             # 前向传播
             logits = self.forward(input_tensor, pos_tensor)
 
-            # 获取最后一个位置的logits
-            last_logits = logits.slice(0, seq_len - 1, seq_len)
+            last_row = logits.slice(0, logits.shape()[0] - 1, logits.shape()[0])
 
             # argmax采样
-            max_idx = Tensor.zeros([1], dtype=self.device, dtype_name="i64")
-            max_val = Tensor.zeros([1], device=self.device)
-            last_logits_flat = last_logits.view([-1])
-
-            self.ops.argmax(max_idx, max_val, last_logits_flat)
+            max_idx = Tensor.zeros([1], dtype=DataType.I64, device=self.device)
+            max_val = Tensor.zeros([1], dtype=DataType.BF16, device=self.device)
+            self.ops.argmax(max_idx, max_val, last_row)
 
             # 获取下一个token
-            next_token = int(max_idx.to_numpy()[0])
+            next_token = max_idx.item()
             input_ids.append(next_token)
 
             # 检查结束条件（如EOS token）
