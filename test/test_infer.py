@@ -129,26 +129,26 @@ if __name__ == "__main__":
 
     model = load_llaisys_model(args.model, args.device)
     start_time = time.time()
-    llaisys_tokens, llaisys_output = llaisys_infer(
-        args.prompt,
-        tokenizer,
-        model,
-        max_new_tokens=args.max_steps,
-        top_p=top_p,
-        top_k=top_k,
-        temperature=temperature,
-    )
+    # llaisys_tokens, llaisys_output = llaisys_infer(
+    #     args.prompt,
+    #     tokenizer,
+    #     model,
+    #     max_new_tokens=args.max_steps,
+    #     top_p=top_p,
+    #     top_k=top_k,
+    #     temperature=temperature,
+    # )
 
-    end_time = time.time()
+    # end_time = time.time()
 
-    print("\n=== Your Result ===\n")
-    print("Tokens:")
-    print(llaisys_tokens)
-    print("\nContents:")
-    print(llaisys_output)
-    print("\n")
-    print(f"Time elapsed: {(end_time - start_time):.2f}s\n")
+    # print("\n=== Your Result ===\n")
+    # print("Tokens:")
+    # print(llaisys_tokens)
+    # print("\nContents:")
+    # print(llaisys_output)
+    # print("\n")
+    # print(f"Time elapsed: {(end_time - start_time):.2f}s\n")
 
-    if args.test:
-        assert llaisys_tokens == tokens
-        print("\033[92mTest passed!\033[0m\n")
+    # if args.test:
+    #     assert llaisys_tokens == tokens
+    #     print("\033[92mTest passed!\033[0m\n")

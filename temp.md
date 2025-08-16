@@ -35,3 +35,7 @@ swiglu
 ```bash
 source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/ops/swiglu.py
 ```
+# Transformer Test
+```bash
+source .venv/bin/activate && xmake && xmake install && uv pip install ./python/ && python test/test_infer.py --model ./data/DeepSeek-R1-Distill-Qwen-1.5B > log
+```
