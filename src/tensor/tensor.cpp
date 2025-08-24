@@ -37,6 +37,51 @@ tensor_t Tensor::create(const std::vector<size_t> &shape,
     }
 }
 
+tensor_t Tensor::cat_two(const tensor_t a, const tensor_t b, int dim) {
+    // Only support concatenation along dimension 0 for now
+    if (dim != 0) {
+        throw std::runtime_error("Only concatenation along dimension 0 is supported.");
+    }
+
+    // Check dimensions
+    if (a->ndim() != b->ndim()) {
+        throw std::runtime_error("Tensors must have the same number of dimensions to concatenate.");
+    }
+
+    // Check shapes for all dims except 0
+    for (size_t i = 1; i < a->ndim(); ++i) {
+        if (a->shape()[i] != b->shape()[i]) {
+            throw std::runtime_error("Tensors must have the same shape in all dimensions except dimension 0.");
+        }
+    }
+
+    // New shape
+    std::vector<size_t> new_shape = a->shape();
+    new_shape[0] += b->shape()[0];
+
+    // Create new tensor
+    auto result = Tensor::create(new_shape, a->dtype(), a->deviceType(), a->deviceId());
+
+    // Calculate size to copy for a and b (in bytes)
+    size_t a_bytes = a->numel() * a->elementSize();
+    size_t b_bytes = b->numel() * b->elementSize();
+
+    // Copy data from a
+    if (a->deviceType() == LLAISYS_DEVICE_CPU) {
+        std::memcpy(result->data(), a->data(), a_bytes);
+        std::memcpy(result->data() + a_bytes, b->data(), b_bytes);
+    } else {
+        core::context().setDevice(a->deviceType(), a->deviceId());
+        core::context().runtime().api()->memcpy_sync(
+            result->data(), a->data(), a_bytes, LLAISYS_MEMCPY_D2D);
+        core::context().runtime().api()->memcpy_sync(
+            result->data() + a_bytes, b->data(), b_bytes, LLAISYS_MEMCPY_D2D);
+        core::context().runtime().api()->device_synchronize();
+    }
+
+    return result;
+}
+
 std::byte *Tensor::data() {
     return _storage->memory() + _offset;
 }

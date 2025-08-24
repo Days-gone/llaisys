@@ -209,3 +209,52 @@ class Tensor:
             return float(float_ptr.contents.value)
         else:
             raise ValueError(f"Unsupported dtype for item(): {dtype}")
+
+    def to_torch(self):
+        """转换为 PyTorch tensor"""
+        import torch
+        import numpy as np
+        from ctypes import cast, POINTER, c_float, c_uint16
+
+        # 获取形状和数据类型
+        shape = self.shape()
+        dtype = self.dtype()
+
+        # 计算总元素数
+        total_elements = 1
+        for dim in shape:
+            total_elements *= dim
+
+        ptr = self.data_ptr()
+
+        if dtype == DataType.F32:
+            float_ptr = cast(ptr, POINTER(c_float))
+            np_array = np.array(
+                [float_ptr[i] for i in range(total_elements)], dtype=np.float32
+            )
+            torch_tensor = torch.from_numpy(np_array).reshape(shape)
+            return torch_tensor
+        elif dtype == DataType.BF16:
+            # BF16 需要特殊处理
+            uint16_ptr = cast(ptr, POINTER(c_uint16))
+            np_array = np.array(
+                [uint16_ptr[i] for i in range(total_elements)], dtype=np.uint16
+            )
+            # 将 BF16 转换为 float32 再转为 torch tensor
+            torch_tensor = (
+                torch.from_numpy(np_array).view(torch.bfloat16).float().reshape(shape)
+            )
+            return torch_tensor
+        else:
+            raise ValueError(f"Unsupported dtype for to_torch(): {dtype}")
+
+    @classmethod
+    def cat_two(cls, first: "Tensor", second: "Tensor", dim: int):
+        """在指定维度上连接两个tensor"""
+        return Tensor(
+            shape=[first.shape()[0] + second.shape()[0], first.shape()[1]],
+            dtype=first.dtype(),
+            device=first.device_type(),
+            device_id=first.device_id(),
+            tensor=LIB_LLAISYS.tensorCatTwo(first._tensor, second._tensor, dim),
+        )

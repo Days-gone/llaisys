@@ -76,3 +76,7 @@ def load_tensor(lib):
         c_size_t,  # end  : exclusive
     ]
     lib.tensorSlice.restype = llaisysTensor_t
+
+    # Function: tensorCatTwo(llaisysTensor_t tensor1, llaisysTensor_t tensor2, size_t dim);
+    lib.tensorCatTwo.argtypes = [llaisysTensor_t, llaisysTensor_t, c_size_t]
+    lib.tensorCatTwo.restype = llaisysTensor_t

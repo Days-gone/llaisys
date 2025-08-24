@@ -1,3 +1,4 @@
+#include "llaisys/tensor.h"
 #include "llaisys_tensor.hpp"
 
 #include <vector>
@@ -92,5 +93,13 @@ __C {
         size_t start,
         size_t end) {
         return new LlaisysTensor{tensor->tensor->slice(dim, start, end)};
+    }
+
+    llaisysTensor_t tensorCatTwo(
+        llaisysTensor_t tensor1,
+        llaisysTensor_t tensor2,
+        int dim
+    ) {
+        return new LlaisysTensor{llaisys::Tensor::cat_two(tensor1->tensor, tensor2->tensor, dim)};
     }
 }
