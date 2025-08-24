@@ -9,14 +9,13 @@
 template <typename T>
 void self_atten_(T *atten_val, T *q, T *k, T *v, float scale,
                  size_t d_seq, size_t d_head, size_t d_dim, size_t d_totallen, size_t d_kvhead, size_t d_v) {
-    // q: [d_seq, d_head, d_dim]
-    // k: [d_totallen, d_kvhead, d_dim]
+    // q: [d_seq, d_head, d_dim]  -> L = d_seq
+    // k: [d_totallen, d_kvhead, d_dim]  -> S = d_totallen
     // v: [d_totallen, d_kvhead, d_v]
     // atten_val: [d_seq, d_head, d_v]
 
     for (size_t seq_i = 0; seq_i < d_seq; ++seq_i) {
         for (size_t head = 0; head < d_head; ++head) {
-            // 修正头复制逻辑：计算每个KV头对应多少个Q头
             size_t heads_per_kv = d_head / d_kvhead;
             size_t kv_head = head / heads_per_kv;
             
@@ -49,26 +48,45 @@ void self_atten_(T *atten_val, T *q, T *k, T *v, float scale,
                 attention_scores[total_j] = score * scale;
             }
 
-            // Causal softmax: 只对 total_j <= seq_i 的位置计算softmax
+            // L = d_seq, S = d_totallen
+            // diagonal = S - L = d_totallen - d_seq
+            size_t L = d_seq;
+            size_t S = d_totallen;
+            int diagonal = static_cast<int>(S) - static_cast<int>(L);
+            
+            // 对于位置 (i, j)，如果 j <= i + diagonal，则保留；否则 mask 掉
             float max_score = -INFINITY;
-            for (size_t total_j = 0; total_j <= seq_i && total_j < d_totallen; ++total_j) {
-                max_score = std::max(max_score, attention_scores[total_j]);
+            bool has_valid_position = false;
+            
+            for (size_t total_j = 0; total_j < d_totallen; ++total_j) {
+                if (static_cast<int>(total_j) <= static_cast<int>(seq_i) + diagonal) {
+                    max_score = std::max(max_score, attention_scores[total_j]);
+                    has_valid_position = true;
+                }
+            }
+
+            // 如果没有有效位置，使用第一个位置避免 -inf
+            if (!has_valid_position) {
+                max_score = attention_scores[0];
             }
 
             float sum_exp = 0.0f;
-            for (size_t total_j = 0; total_j <= seq_i && total_j < d_totallen; ++total_j) {
-                attention_scores[total_j] = std::exp(attention_scores[total_j] - max_score);
-                sum_exp += attention_scores[total_j];
+            for (size_t total_j = 0; total_j < d_totallen; ++total_j) {
+                if (static_cast<int>(total_j) <= static_cast<int>(seq_i) + diagonal) {
+                    attention_scores[total_j] = std::exp(attention_scores[total_j] - max_score);
+                    sum_exp += attention_scores[total_j];
+                } else {
+                    attention_scores[total_j] = 0.0f;  // mask 掉未来位置
+                }
             }
 
             // 归一化
-            for (size_t total_j = 0; total_j <= seq_i && total_j < d_totallen; ++total_j) {
-                attention_scores[total_j] /= sum_exp;
-            }
-
-            // 将未来位置的注意力权重设为0
-            for (size_t total_j = seq_i + 1; total_j < d_totallen; ++total_j) {
-                attention_scores[total_j] = 0.0f;
+            if (sum_exp > 0.0f) {
+                for (size_t total_j = 0; total_j < d_totallen; ++total_j) {
+                    if (static_cast<int>(total_j) <= static_cast<int>(seq_i) + diagonal) {
+                        attention_scores[total_j] /= sum_exp;
+                    }
+                }
             }
 
             // 计算输出 Y = softmax(A) * V
